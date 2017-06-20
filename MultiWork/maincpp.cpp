@@ -14,31 +14,74 @@ HANDLE server_event;
 HANDLE* client_event;
 int tcount = 0;
 
-std::map<int,int> mWorkList;
-int workCount = 1000000;
+std::vector<int> mWorkList;
+int workCount = 10000000;
 int haveWorkCount = 0;
-void testWork()
+int haveWorkCount0 = 0;
+int haveWorkCount1 = 0;
+int haveWorkCount2 = 0;
+int haveWorkCount3 = 0;
+
+
+///
+//多线程的写操作一旦进入公有区域 不管这个内容有没有竞争 都会使运行速度大为下降
+//最好的办法是定义一个局部的“结果数据” 把运算内容放在这个“结果数据”内 才能发挥多线程的最大功效
+//公有区域的读操作是没有任何问题的
+//
+void testWork(int& id)
 {
 	//全局变量的"写"默认是有“锁”的
-	//haveWorkCount++;
+	//haveWorkCount++;	
+	/*if (id == 0)
+		haveWorkCount0++;
+	if (id == 1)
+		haveWorkCount1++;
+	if (id == 2)
+		haveWorkCount2++;
+	if (id == 3)
+		haveWorkCount3++;
+	if (id == -1)
+		haveWorkCount++;*/
+
+	id++;
 	sqrt(rand());
 	return;
 }
 
-void multiWork()
+void multiWork(int id)
 {	
+	//if (id == 0)
+	//	haveWorkCount0 = 0;
+	//if (id == 1)
+	//	haveWorkCount1 = 0;
+	//if (id == 2)
+	//	haveWorkCount2 = 0;
+	//if (id == 3)
+	//	haveWorkCount3 = 0;
+	//
+
+	//多线程的写操作一旦进入公有区域 不管这个内容有没有竞争 都会使运行速度大为下降
+	//最好的办法是定义一个局部的“结果数据” 把运算内容放在这个“结果数据”内 才能发挥多线程的最大功效
+	int c = 0;
+	//如果把运算结果放到公有区域内 比如haveWorkCount0 haveWorkCount1 haveWorkCount2 之类 都会极大降低速度 
+
 	int _workCount = workCount / maxAssistant;
 	for (int i = 0; i < _workCount; i++)
 	{
-		testWork();
+		testWork(c);	
+		//haveWorkCount++;
+		//c++;
 	}
+	haveWorkCount += c;
 }
 
 void singleWork()
 {
+	haveWorkCount = 0;
 	for (int i = 0; i < workCount; i++)
 	{
-		testWork();
+		testWork(haveWorkCount);
+		haveWorkCount++;
 	}
 }
 
@@ -48,6 +91,7 @@ void say_hello(void* args)
 {
 	//int id = *(int*)args;
 	int id = tcount++;
+	
 
 	printf("thread created %d...\n",id);
 
@@ -59,7 +103,7 @@ void say_hello(void* args)
 		//printf("thread %d work...\n", id);
 
 		//Sleep(1000);
-		multiWork();
+		multiWork(id);
 
 		//printf("thread %d finish...\n", id);
 		
@@ -72,7 +116,7 @@ void say_hello(void* args)
 int main()  
 {  
 	
-
+	mWorkList.resize(maxAssistant);
 	client_event = new HANDLE[maxAssistant];
 	assistant = new HANDLE[maxAssistant];
 
@@ -135,6 +179,14 @@ int main()
 		QueryPerformanceFrequency(&fq);
 
 		time = (double)(pe.QuadPart - pb.QuadPart) / (double)fq.QuadPart;
-		printf("command finish all %d %f...\n", haveWorkCount, time*1000);
+
+		int _count;
+		/*if (bUseMultiWork)
+			_count = haveWorkCount0 + haveWorkCount1 + haveWorkCount2 + haveWorkCount3;
+		else*/
+		{
+			_count = haveWorkCount;
+		}
+		printf("command finish all %d %f...\n", _count, time*1000);
 	}
 } 
