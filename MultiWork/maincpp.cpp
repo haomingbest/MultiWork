@@ -19,13 +19,14 @@ int workCount = 1000000;
 int haveWorkCount = 0;
 void testWork()
 {
+	//全局变量的"写"默认是有“锁”的
 	//haveWorkCount++;
 	sqrt(rand());
 	return;
 }
 
 void multiWork()
-{
+{	
 	int _workCount = workCount / maxAssistant;
 	for (int i = 0; i < _workCount; i++)
 	{
